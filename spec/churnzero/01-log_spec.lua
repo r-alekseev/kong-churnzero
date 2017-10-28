@@ -1,12 +1,12 @@
 local helpers = require "spec.helpers"
 
-describe("Plugin: churnzero-eventtracker (log)", function()
+describe("Plugin: churnzero (log)", function()
   local client
 
   setup(function()
     -- start kong, while setting the config item `custom_plugins` to make sure our
     -- plugin gets loaded
-    assert(helpers.start_kong {custom_plugins = "churnzero-eventtracker"})
+    assert(helpers.start_kong {custom_plugins = "churnzero"})
   end)
 
   teardown(function()

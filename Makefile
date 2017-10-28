@@ -1,7 +1,7 @@
 DEV_ROCKS = "luacheck 0.20.0" "lua-llthreads2 0.1.4"
 OPENSSL_DIR ?= /usr/local/opt/openssl
 
-.PHONY: install dev lint test test-integration test-plugins test-all
+.PHONY: install dev lint
 
 install:
 	@luarocks make OPENSSL_DIR=$(OPENSSL_DIR)
