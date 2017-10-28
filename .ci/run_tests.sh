@@ -9,10 +9,4 @@ createdb -U kong kong_tests
 
 if [ "$TEST_SUITE" == "lint" ]; then
     make lint
-elif [ "$TEST_SUITE" == "unit" ]; then
-    make test
-elif [ "$TEST_SUITE" == "integration" ]; then
-    make test-integration
-elif [ "$TEST_SUITE" == "plugins" ]; then
-    make test-plugins
 fi
