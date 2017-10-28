@@ -1,4 +1,4 @@
-package = "kong-plugin-churnzero-eventtracker"  
+package = "kong-plugin-churnzero"  
 
 version = "0.1.0-1"               
 
@@ -9,15 +9,15 @@ source = {
 }
 
 description = {
-  summary = "Send request logs to ChurnZero",
+  summary = "Integrate Kong with ChurnZero using HTTP API",
   homepage = "https://github.com/r-alekseev/kong-churnzero",
-  license = "MIT"
+  license = "Apache 2.0"
 }
 
 dependencies = {
 }
 
-local pluginName = "churnzero-eventtracker"  
+local pluginName = "churnzero"  
 build = {
   type = "builtin",
   modules = {
