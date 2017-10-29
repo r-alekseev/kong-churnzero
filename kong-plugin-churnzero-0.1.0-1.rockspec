@@ -4,7 +4,7 @@ version = "0.1.0-1"
 
 supported_platforms = {"linux", "macosx"}
 source = {
-  url = "https://github.com/r-alekseev/kong-churnzero",
+  url = "git://github.com/r-alekseev/kong-churnzero.git",
   tag = "0.1.0"
 }
 
