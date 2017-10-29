@@ -1,9 +1,18 @@
-local plugin = require("kong.plugins.base_plugin"):extend()
+local ChurnZeroHandler = require("kong.plugins.base_plugin"):extend()
 
-function plugin:new()
-  plugin.super.new(self, "churnzero")
+function ChurnZeroHandler:new()
+  ChurnZeroHandler.super.new(self, "churnzero")
 end
 
-plugin.PRIORITY = 1000
+function ChurnZeroHandler:header_filter(conf)
+  ChurnZeroHandler.super.header_filter(self)
+end
 
-return plugin
+function ChurnZeroHandler:log(conf)
+  ChurnZeroHandler.super.log(self)
+end
+
+ChurnZeroHandler.PRIORITY = 802
+ChurnZeroHandler.VERSION = "0.1.0"
+
+return ChurnZeroHandler
