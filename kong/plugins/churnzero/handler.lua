@@ -5,8 +5,12 @@ local newtab  = require "table.new"
 local ngx_log   = ngx.log
 local ngx_resp  = ngx.resp
 
+-- luacheck: push ignore string
+local string_len    = string.len
 local string_format = string.format
 local string_match  = string.match
+-- luacheck: pop
+
 local cjson_encode  = cjson.encode
 
 
@@ -102,13 +106,32 @@ local function make_request_body(app_key, account_external_id, contact_external_
 
   for _, event_header in ipairs(event_headers) do
     events[event_number] = {
-      app_key = app_key,
-      account_external_id = account_external_id,
-      contact_external_id = contact_external_id,
-      action = 'trackEvent',
-      event_date = event_date,
-      event_name = event_header.name,
-      quantity = event_header.quantity
+
+      -- Every request must include your appKey which can be found on the Admin > AppKey Page.
+      ["appKey"]            = app_key,
+
+      -- The accountExternalId is your unique record to identify your account. 
+      -- This ID should also be in your CRM.
+      ["accountExternalId"] = account_external_id,
+
+      -- The contactExternalId must be unique within the account. 
+      -- This could be a email address, a unique record that is also contained in your CRM, 
+      -- or the ID of the contact record of your CRM.
+      ["contactExternalId"] = contact_external_id,
+
+      -- Must be 'trackEvent'.
+      ["action"]            = 'trackEvent',
+
+      -- The date of the event (defaults to time of API call) in format ISO-8601 ("2012-03-19T07:22Z")
+      ["eventDate"]         = event_date,
+
+      -- This is the unique name of the event (ie. "Sent Blog Post"). 
+      -- If the Event Name is not found it will be created.
+      ["eventName"]         = event_header.name,
+
+      -- The number related to this event. 
+      -- (ie. Commonly used to track things like email sent, etc)
+      ["quantity"]          = event_header.quantity
     }
 
     event_number = event_number + 1
@@ -146,14 +169,16 @@ local function generate_churnzero_payload(parsed_url, body)
     url = parsed_url.path
   end
 
+  local content_length = string_len(body)
+
   -- TODO: add Keep-Alive
   -- local headers = string_format(
   --   "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: Keep-Alive\r\nContent-Type: %s\r\nCache-Control: %s\r\n",
   --   method:upper(), url, parsed_url.host, content_type, cache_control)
 
   local headers = string_format(
-    "%s %s HTTP/1.1\r\nHost: %s\r\nContent-Type: %s\r\nCache-Control: %s\r\n",
-    method:upper(), url, parsed_url.host, content_type, cache_control)
+    "%s %s HTTP/1.1\r\nHost: %s\r\nContent-Type: %s\r\nCache-Control: %s\r\nContent-Length: %s\r\n",
+    method:upper(), url, parsed_url.host, content_type, cache_control, content_length)
 
   local payload = string_format("%s\r\n%s", headers, body)
 
@@ -195,9 +220,12 @@ end
 -- @param `name` the plugin name (used for logging purposes in case of errors etc.)
 local function log(premature, parsed_url, timeout, payload, name)
 
+  ngx_log(ngx.ERR, "[log] sent started")
   if premature then
     return
   end
+
+  ngx_log(ngx.ERR, "[log] sent started 2")
   name = "[" .. name .. "] "
 
   local ok, err
@@ -205,9 +233,12 @@ local function log(premature, parsed_url, timeout, payload, name)
   local host = parsed_url.host
   local port = tonumber(parsed_url.port)
 
+  ngx_log(ngx.ERR, "[log] sent started before ngx.socket.tcp()")
   local sock = ngx.socket.tcp()
+  ngx_log(ngx.ERR, "[log] sent started before sock:settimeout(timeout)")
   sock:settimeout(timeout)
 
+  ngx_log(ngx.ERR, "[log] sent started before sock:connect(host, port)")
   ok, err = sock:connect(host, port)
   if not ok then
     ngx.log(ngx.ERR, name .. "failed to connect to " .. host .. ":" .. tostring(port) .. ": ", err)
@@ -215,16 +246,34 @@ local function log(premature, parsed_url, timeout, payload, name)
   end
 
   if parsed_url.scheme == HTTPS then
+    ngx_log(ngx.ERR, "[log] sent started before sock:sslhandshake(true, host, false)")
     local _, err = sock:sslhandshake(true, host, false)
     if err then
       ngx.log(ngx.ERR, name .. "failed to do SSL handshake with " .. host .. ":" .. tostring(port) .. ": ", err)
     end
   end
 
+  ngx_log(ngx.ERR, "[log] sent started before sock:send(payload)")
   ok, err = sock:send(payload)
   if not ok then
     ngx.log(ngx.ERR, name .. "failed to send data to " .. host .. ":" .. tostring(port) .. ": ", err)
   end
+
+  ngx_log(ngx.ERR, "[log] sent \r\n", payload)
+
+  local line, err = sock:receive()
+
+  if not line then
+    ngx_log(ngx.ERR, name .. "failed to receive status from " .. host .. ":" .. tostring(port) .. ": ", err)
+  end
+
+  local chunk, err, partial = sock:receive("*a")
+
+  if not chunk then
+    ngx_log(ngx.ERR, name .. "failed to receive body from " .. host .. ":" .. tostring(port) .. ": ", err)
+  end
+
+  ngx_log(ngx.ERR, "[log] received \r\n", line, "\r\n", chunk, "\r\n", partial)
 
   -- TODO: add keepalive
   -- ok, err = sock:setkeepalive(keepalive)
@@ -244,6 +293,8 @@ end
 -- The goal of this method is to populate ngx.ctx.churnzero.event_headers collection
 function ChurnZeroHandler:header_filter(conf)
   ChurnZeroHandler.super.header_filter(self)
+
+  ngx_log(ngx.ERR, "[" .. self._name .. "] [header_filter]")
 
   local ctx = ngx.ctx
 
@@ -290,6 +341,8 @@ end
 function ChurnZeroHandler:log(conf)
   ChurnZeroHandler.super.log(self)
 
+  ngx_log(ngx.ERR, "[" .. self._name .. "] [log]")
+
   local ctx = ngx.ctx
   local var = ngx.var
 
@@ -311,15 +364,19 @@ function ChurnZeroHandler:log(conf)
   )
 
   if not enabled or not contact_external_id then
+
+    ngx_log(ngx.ERR, "[" .. self._name .. "] [log] [disabled]")
     return
   end
 
   -- make request body
 
   local app_key = conf.app_key
+
   local account_external_id = conf.account_external_id
-  -- MISSED: The date of the event (defaults to time of API call) in format ISO-8601 ("2012-03-19T07:22Z")
-  local event_date = nil
+
+  -- The date of the event (defaults to time of API call) in format ISO-8601 ("2012-03-19T07:22Z")
+  local event_date = os.date("!%Y-%m-%dT%H:%M:%SZ") 
 
   local event_headers = ctx.churnzero.event_headers
   local event_header_number = ctx.churnzero.event_header_number
@@ -345,7 +402,6 @@ function ChurnZeroHandler:log(conf)
     parsed_url, 
     body
   )
-
 
   local ok, err = ngx.timer.at(0, log, parsed_url, timeout, payload, self._name)
   if not ok then
