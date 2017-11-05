@@ -2,15 +2,14 @@ local cjson                 = require "cjson"
 
 local HeaderFilterContext   = require "kong.plugins.churnzero.header_filter"
 local LogContext            = require "kong.plugins.churnzero.log"
-local Debug                 = require "kong.plugins.churnzero.debug"
 
 local cjson_encode          = cjson.encode
 
-local BasePlugin           = require("kong.plugins.base_plugin") 
-local ChurnZeroPlugin      = BasePlugin:extend()
+local BasePlugin            = require("kong.plugins.base_plugin") 
+local ChurnZeroPlugin       = BasePlugin:extend()
 
-ChurnZeroPlugin.PRIORITY   = 13
-ChurnZeroPlugin.VERSION    = "0.1.0"
+ChurnZeroPlugin.PRIORITY    = 13
+ChurnZeroPlugin.VERSION     = "0.1.0"
 
 
 local function produce_event(app_key, account_external_id, contact_external_id, event_date, event_name, quantity)
@@ -57,25 +56,17 @@ function ChurnZeroPlugin:header_filter(conf)
   ChurnZeroPlugin.super.header_filter(self)
 
   local ngx_ctx     = ngx.ctx
-  local ngx_header  = ngx.header
-
-  -- initialize debugging
-  local debug = Debug 
-    :new(conf.debug, cjson_encode, self._name)
-    :log_s("[header_filter]")
-    :log_t(conf)
-
-  ngx_ctx.debug = debug
 
   -- catch events from headers
   local header_event_count, header_events = HeaderFilterContext 
-    :new(conf, debug) 
-    :catch_churnzero_header_events(ngx_header)
+    :new(conf) 
+    :catch_churnzero_header_events()
 
-  -- save events to nginx context
-  ngx_ctx.churnzero = { header_event_count = header_event_count, header_events = header_events }
-
-  debug:log_t(ngx_ctx.churnzero)
+  -- save events (based on headers) to nginx context
+  ngx_ctx.churnzero = { 
+    header_event_count = header_event_count, 
+    header_events = header_events 
+  }
 end
 
 
@@ -88,36 +79,18 @@ function ChurnZeroPlugin:log(conf)
   local ngx_var     = ngx.var
   local ngx_socket  = ngx.socket
 
-  local debug   = ngx_ctx.debug :log_s("[log]")
-
-  
+  -- load consumer info
   local authenticated_consumer = ngx_ctx.authenticated_consumer
   local authenticated_credential = ngx_ctx.authenticated_credential
   local remote_addr = ngx_var.remote_addr
 
-  debug :log_s("[log] attributes:") :log_t( {
-    authenticated_consumer = authenticated_consumer,
-    authenticated_credential = authenticated_credential,
-    remote_addr = remote_addr
-  })
-
-  if not authenticated_consumer and not conf.unauthenticated_enabled then 
-    debug:log_s("[log] RETURN not authenticated_consumer and not conf.unauthenticated_enabled")
-    return
-  end
-
-
+  -- load events (based on headers) from nginx context
   local header_events = ngx_ctx.churnzero.header_events
   local header_event_count = ngx_ctx.churnzero.header_event_count
 
-  if header_event_count < 1 or not header_events then 
-    debug:log_s("[log] RETURN header_event_count < 1 or not header_events")
-    return 
-  end
-
   -- send http request to churnzero based on events from headers
   LogContext 
-      :new(conf,  debug)
+      :new(conf)
       :produce_churnzero_events(header_events, header_event_count, produce_event, authenticated_consumer, authenticated_credential, remote_addr)
       :send_churnzero_request(ngx_socket, cjson_encode)
 end

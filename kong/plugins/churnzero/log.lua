@@ -4,22 +4,20 @@ local socket_url                   = require "socket.url"
 -- luacheck: push ignore string
 local string_len            = string.len
 local string_format         = string.format
-local string_upper          = string.upper
 -- luacheck: pop
 
 local Object                = require "kong.vendor.classic"
 local LogFilterContext      = (Object):extend()
 
+local ngx_log               = ngx.log
+local ERR                   = ngx.ERR
+local DEBUG                 = ngx.DEBUG
 
 local HTTP = "http"
 local HTTPS = "https"
 
 
--- ctor.
--- @param[type=table] `conf` Plugin configuration.
--- @param[type=table] `debug` Debug object for loging purposes
-function LogFilterContext:new(conf, debug)
-  self._debug = debug
+function LogFilterContext:new(conf)
   self._conf = conf
   self._events = nil
   self._event_number = 0
@@ -34,13 +32,7 @@ end
 -- If user unauthenticated, fills 'identifier' 
 --   by 'remote_addr' if 'unauthenticated_from' = "ip"
 --   by 'unauthenticated_const' if 'unauthenticated_from' = "const"
-local function get_external_id(conf, section, authenticated_consumer, authenticated_credential, remote_addr, debug)
-
-  debug :log_s("[get_external_id]") :log_t({ 
-    authenticated_consumer = authenticated_consumer,
-    authenticated_credential = authenticated_credential,
-    remote_addr = remote_addr })
-
+local function get_external_id(conf, section, authenticated_consumer, authenticated_credential, remote_addr)
   local identifier = nil
 
   -- if authenticated
@@ -61,26 +53,12 @@ local function get_external_id(conf, section, authenticated_consumer, authentica
 
   identifier = conf[section].prefix .. identifier
 
-  debug :log_s("[get_external_id] identifier: " .. identifier) 
-
   return identifier
 end
 
 
--- Generates the raw http message.
--- @param `parsed_url_query` contains the host details
--- @param `body`  Body of the message as a string (must be encoded according to the `content_type` parameter)
--- @return raw http message
-local function generate_churnzero_payload(parsed_url, body, debug)
-  local method = 'POST'
-  local content_type = 'application/json'
-  local cache_control = 'no-cache'
-
-  debug :log_s("[generate_churnzero_payload]") :log_t({ 
-    method = method,
-    content_type = content_type,
-    cache_control = cache_control })
-
+local function generate_churnzero_payload(parsed_url, body)
+  
   local url
   if parsed_url.query then
     url = parsed_url.path .. "?" .. parsed_url.query
@@ -90,26 +68,14 @@ local function generate_churnzero_payload(parsed_url, body, debug)
 
   local content_length = string_len(body)
 
-  -- TODO: add Keep-Alive
-  -- local headers = string_format(
-  --   "%s %s HTTP/1.1\r\nHost: %s\r\nConnection: Keep-Alive\r\nContent-Type: %s\r\nCache-Control: %s\r\n",
-  --   method:upper(), url, parsed_url.host, content_type, cache_control)
-
-  local headers = string_format(
-    "%s %s HTTP/1.1\r\nHost: %s\r\nContent-Type: %s\r\nCache-Control: %s\r\nContent-Length: %s\r\n",
-    string_upper(method), url, parsed_url.host, content_type, cache_control, content_length)
-
-  local payload = string_format("%s\r\n%s", headers, body)
-
-  debug :log_s("[generate_churnzero_payload] payload: " .. (payload or "nil"))
+  local payload = string_format(
+    "POST %s HTTP/1.1\r\nHost: %s\r\nContent-Type: application/json\r\nCache-Control: no-cache\r\nContent-Length: %s\r\n\r\n%s",
+    url, parsed_url.host, content_length, body)
 
   return payload
 end
 
 
--- Parse host url.
--- @param `host_url` host url
--- @return `parsed_url` a table with host details like domain name, port, path etc
 local function parse_url(host_url)
   local parsed_url = socket_url.parse(host_url)
   if not parsed_url.port then
@@ -127,18 +93,9 @@ local function parse_url(host_url)
 end
 
 
--- Log to a Http endpoint.
--- This basically is structured as a timer callback.
--- @param `premature` see openresty ngx.timer.at function
--- @param `parsed_url` parsed url table including host, port and scheme
--- @param `timeout` 
--- @param `payload` raw http request payload to be logged
-local function send(premature, ngx_socket, parsed_url, timeout, payload, debug)
-  debug :log_s("[send]")
+local function send(premature, ngx_socket, parsed_url, timeout, payload)
 
   if premature then return end
-
-  debug :log_s("[send] premature ok")
 
   local ok, err
 
@@ -147,83 +104,72 @@ local function send(premature, ngx_socket, parsed_url, timeout, payload, debug)
 
   local sock = ngx_socket.tcp()
   sock:settimeout(timeout)
-  debug :log_s("[send] [sock:connect(" .. (host or "nil") ..", " .. tostring(port or "nil") .. ")]")
 
   ok, err = sock:connect(host, port)
   if not ok then
-    debug :log_s("[send] ERROR failed to connect to " .. host .. ":" .. tostring(port) .. ": " .. (err or ""))
+    ngx_log(ERR, "failed to connect to " .. host .. ":" .. tostring(port) .. ": ", err) 
     return
   end
 
   if parsed_url.scheme == HTTPS then
     local _, err = sock:sslhandshake(true, host, false)
     if err then
-      debug :log_s("[send] ERROR failed to do SSL handshake with " .. host .. ":" .. tostring(port) .. ": " .. (err or ""))
+      ngx_log(ERR, "failed to do SSL handshake with " .. host .. ":" .. tostring(port) .. ": ", err)
     end
   end
 
   ok, err = sock:send(payload)
   if not ok then
-  	debug :log_s("[send] ERROR failed to send data to " .. host .. ":" .. tostring(port) .. ": " .. (err or ""))
-  	return
-  end
-
-  debug :log_s("[send] sent payload: \r\n" .. (payload or "nil"))
-
-  local line, err = sock:receive()
-
-  debug :log_s("[send] sock:receive()")
-
-  if not line then
-    debug :log_s("[send] ERROR failed to receive status from " .. host .. ":" .. tostring(port) .. ": " .. (err or ""))
+    ngx_log(ERR, "failed to send data to " .. host .. ":" .. tostring(port) .. ": ", err)
     return
   end
 
-  debug :log_s("[send] status: " .. line or "nil")
+  -- / self control (optional)
+
+  ngx_log(DEBUG, "payload:\r\n" .. payload)
+
+  local line, err = sock:receive()
+
+  if not line then
+  	ngx_log(ERR, "failed to receive status from " .. host .. ":" .. tostring(port) .. ": ", err)
+    return
+  end
 
   if line ~= "HTTP/1.1 200 OK" then
-
-    debug :log_s("[send] sock:receive(\"*a\")")
 
     local chunk, err, partial = sock:receive("*a")
 
     if not chunk then
-      debug :log_s("[send] ERROR failed to receive body from " .. host .. ":" .. tostring(port) .. ": " .. (err or ""))
+      ngx_log(ERR, "failed to receive body from " .. host .. ":" .. tostring(port) .. ": ", err)
       return
     end
 
-    debug :log_s("[log] received \r\n" .. line .. "\r\n" .. chunk .. "\r\n" .. partial)
-
+    ngx_log(ERR, "received " .. line .. "\r\n" .. chunk .. "\r\n" .. partial)
   end
 
-  -- TODO: add keepalive
-  -- ok, err = sock:setkeepalive(keepalive)
-  -- if not ok then
-  --   ngx.log(ngx.ERR, name .. "failed to keepalive to " .. host .. ":" .. tostring(port) .. ": ", err)
-  --   return
-  -- end
+  -- \ self control (optional)
 end
 
 
--- Produces full events based on short events (based on f.e. headers or routes)
--- @param[type=table] `short_events` Table with short event data from headers or routes
--- @param[type=integer] `short_event_count` Count of items in 'short_events'
 function LogFilterContext:produce_churnzero_events(short_events, short_event_count, produce_event, authenticated_consumer, authenticated_credential, remote_addr)
-  local debug = self._debug :log_s("[produce_churnzero_events]")
+
   local conf = self._conf
 
+  -- consumer unauthenticated and this is disabled
+  if not authenticated_consumer and not conf.unauthenticated_enabled then 
+    return self
+  end
+
+  -- events collection is empty
+  if short_event_count < 1 or not short_events then 
+    return self
+  end
+
   local app_key = conf.app_key
-  local event_date = os.date("!%Y-%m-%dT%H:%M:%SZ") -- Z local event_date = os.date("!%Y-%m-%dT%H:%M:%SZ")
+  local event_date = os.date("!%Y-%m-%dT%H:%M:%SZ")
 
-  local account_external_id = get_external_id(conf, "account", authenticated_consumer, authenticated_credential, remote_addr, debug)
-  local contact_external_id = get_external_id(conf, "contact", authenticated_consumer, authenticated_credential, remote_addr, debug)
-
-  debug :log_s("[produce_churnzero_events] attributes:") :log_t( {
-    app_key = app_key,
-    event_date = event_date,
-    account_external_id = account_external_id,
-    contact_external_id = contact_external_id,
-  })
+  local account_external_id = get_external_id(conf, "account", authenticated_consumer, authenticated_credential, remote_addr)
+  local contact_external_id = get_external_id(conf, "contact", authenticated_consumer, authenticated_credential, remote_addr)
 
   local events = self._events or table_new(short_event_count, 0) 
   local event_number = self._event_number
@@ -242,18 +188,12 @@ function LogFilterContext:produce_churnzero_events(short_events, short_event_cou
   self._event_number = event_number
   self._events = events
 
-  debug 
-  	:log_s("[produce_churnzero_events] event_number:" .. tostring(event_number) .. ", events: ") 
-    :log_t(events)
-
   return self
 end
 
 
--- Sends a request with events to ChurnZero using all events
--- @param[type=function] `serialize_f` Function for serialize events
 function LogFilterContext:send_churnzero_request(ngx_socket, serialize_f)
-  local debug = self._debug :log_s("[send_churnzero_request]")
+
   local conf = self._conf
 
   local events = self._events
@@ -264,21 +204,15 @@ function LogFilterContext:send_churnzero_request(ngx_socket, serialize_f)
 
   local body = serialize_f(events)
 
-  debug :log_s("[send_churnzero_request] body: " .. (body or "nil"))
-
   local endpoint_url = conf.endpoint_url
   local timeout = conf.timeout
 
   local parsed_url = parse_url(endpoint_url)
-  local payload = generate_churnzero_payload(parsed_url, body, debug)
+  local payload = generate_churnzero_payload(parsed_url, body)
 
-  debug :log_s("[send_churnzero_request]:") :log_t({
-  	parsed_url = parsed_url,
-  	payload = payload})
-
-  local ok, err = ngx.timer.at(0, send, ngx_socket, parsed_url, timeout, payload, debug)
+  local ok, err = ngx.timer.at(0, send, ngx_socket, parsed_url, timeout, payload)
   if not ok then
-    debug :log_s("[send_churnzero_request] failed to create timer: ", err)
+  	ngx_log(ERR, "failed to create timer ", err)
   end
 
   return self
