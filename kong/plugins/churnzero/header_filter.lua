@@ -2,74 +2,71 @@ local table_new               = require "table.new"
 
 local ngx_resp                = ngx.resp
 
--- local ERR                  = ngx.ERR
-
 local Object                  = require "kong.vendor.classic"
 local HeaderFilterContext     = (Object):extend()
 
 
--- ctor.
--- @param[type=table] `conf` Plugin configuration.
--- @param[type=table] `debug` Debug object for loging purposes
-function HeaderFilterContext:new(conf, debug)
-  self._debug = debug
+function HeaderFilterContext:new(conf)
   self._conf = conf
 
   return self
 end
 
 
-local event_name_suffix = "EventName-"
-local event_quantity_suffix = "Quantity-"
+local event_name_suffix           = "EventName"
+local quantity_suffix             = "Quantity"
+local account_external_id_suffix  = "AccountExternalId"
+local contact_external_id_suffix  = "ContactExternalId"
+local app_key_suffix              = "AppKey"
+local event_date_suffix           = "EventDate"
 
-local function get_churnzero_headers_event(headers, headers_prefix, number, debug)
+local function get_churnzero_headers_event(headers, headers_prefix, number)
+  local number_postfix = number and ("-" .. tostring(number)) or ""
 
-  debug:log_s("[get_churnzero_headers_event]")
+  local event_name_header_name          = headers_prefix .. event_name_suffix .. number_postfix
+  local event_name                      = headers[event_name_header_name]
 
-  local event_name_header_name        = headers_prefix .. event_name_suffix .. tostring(number)
-  local event_name                    = headers[event_name_header_name]
+  if not event_name then return nil end
 
-  debug:log_s("[get_churnzero_headers_event] event_name: " .. 
-    (event_name or "nil") .. ", event_name_header_name: " .. 
-    (event_name_header_name or "nil"))
+  local quantity_header_name            = headers_prefix .. quantity_suffix .. number_postfix
+  local quantity                        = headers [quantity_header_name]
 
-  if not event_name then 
-    return nil 
-  end
+  local account_external_id_header_name = headers_prefix .. account_external_id_suffix .. number_postfix
+  local account_external_id             = headers [account_external_id_header_name]
 
-  local event_quantity_header_name    = headers_prefix .. event_quantity_suffix .. tostring(number)
-  local quantity                      = headers[event_quantity_header_name]
+  local contact_external_id_header_name = headers_prefix .. contact_external_id_suffix .. number_postfix
+  local contact_external_id             = headers [contact_external_id_header_name]
 
-  debug:log_s("[get_churnzero_headers_event] quantity: " .. 
-    (quantity or "nil") .. ", event_quantity_header_name: " .. 
-    (event_quantity_header_name or "nil"))
+  local app_key_header_name             = headers_prefix .. app_key_suffix .. number_postfix
+  local app_key                         = headers [app_key_header_name]
+
+  local event_date_header_name          = headers_prefix .. event_date_suffix .. number_postfix
+  local event_date                      = headers [event_date_header_name]
 
   local header_event = {
-    event_name    = event_name,
-    quantity      = quantity,
+    event_name            = event_name,
+    quantity              = quantity,
+    account_external_id   = account_external_id,
+    contact_external_id   = contact_external_id,
+    app_key               = app_key,
+    event_date            = event_date 
   }
 
   return header_event
 end
 
 
-local function iter_churnzero_headers_events(headers, headers_prefix, debug)
-  
-  debug:log_s("[iter_churnzero_headers_events]")
-
+local function iter_churnzero_headers_events_with_number_postfix(headers, headers_prefix)
   local number = 0
   return function ()
     number = number + 1
-    return get_churnzero_headers_event(headers, headers_prefix, number, debug)
+    return get_churnzero_headers_event(headers, headers_prefix, number)
   end
 end
 
--- Parses headers with prefix set in `conf` and saves events data to `ngx_ctx`
--- @param[type=table] `conf` Plugin configuration.
--- @param[type=table] `ngx_header` Table for obtain headers, that should be `ngx.headers`
--- @return table A table containing the new headers.
-function HeaderFilterContext:catch_churnzero_header_events(conf, ngx_headers)
-  local debug = self._debug :log_s("[catch_churnzero_header_events]")
+
+function HeaderFilterContext:catch_churnzero_header_events(conf)
+
   local conf = self._conf
 
   local headers               = ngx_resp.get_headers()
@@ -79,12 +76,17 @@ function HeaderFilterContext:catch_churnzero_header_events(conf, ngx_headers)
 
   local headers_prefix        = conf.events_from_header_prefix
 
-  for header_event in iter_churnzero_headers_events(headers, headers_prefix, debug) do
+  -- get events from headers with number postfix
+  for header_event_n in iter_churnzero_headers_events_with_number_postfix(headers, headers_prefix) do
+    header_event_number = header_event_number + 1
+    header_events[header_event_number] = header_event_n
+  end
+
+  -- get events from headers without number postfix
+  local header_event = get_churnzero_headers_event(headers, headers_prefix)
+  if header_event then
     header_event_number = header_event_number + 1
     header_events[header_event_number] = header_event
-    
-    debug :log_s("[catch_churnzero_header_events] header_event #" .. tostring(header_event_number) .. ":")
-          :log_t(header_event)
   end
 
   return header_event_number, header_events

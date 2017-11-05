@@ -21,7 +21,6 @@ local pluginName = "churnzero"
 build = {
   type = "builtin",
   modules = {
-    ["kong.plugins."..pluginName..".debug"] = "kong/plugins/"..pluginName.."/debug.lua",
     ["kong.plugins."..pluginName..".handler"] = "kong/plugins/"..pluginName.."/handler.lua",
     ["kong.plugins."..pluginName..".header_filter"] = "kong/plugins/"..pluginName.."/header_filter.lua",
     ["kong.plugins."..pluginName..".log"] = "kong/plugins/"..pluginName.."/log.lua",
