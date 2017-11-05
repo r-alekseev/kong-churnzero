@@ -1,33 +1,49 @@
-return {
+local Errors = require "kong.dao.errors"
+
+local conf = {
   no_consumer = false,
   fields = {
     endpoint_url = { required = true, type = "url" },
     timeout = { default = 10000, type = "number" },
-    -- keepalive = { default = 60000, type = "number" },
     app_key = { required = true, type = "string" },
-    account_external_id = { required = true, type = "string" },
-    contact_external_id = { type = "table",
-    required = true,
+    account = { type = "table",
+      required = true,
       schema = {
         fields = {
-          from = { required = true, default = "consumer", type = "string", enum = { "consumer", "credential" } },
-          unauthenticated = { required = true, default = "disabled", type = "string", enum = { "disabled", "ip" } }
+          authenticated_from = { required = true, default = "consumer", type = "string", enum = { "consumer", "credential" } },
+          unauthenticated_from = { required = true, default = "ip", type = "string", enum = { "ip", "const" } },
+          unauthenticated_const = { required = false, default = "anonymous", type = "string" },
+          prefix = { required = false, default = "", type = "string" },
         }
       }
     },
-    event_from_response_header = { type = "table",
-      required = true,    -- by now, catch response headers is the only way to handle event; alternative is to regex rotes
+    contact = { type = "table",
+      required = true,
       schema = {
         fields = {
-          header_name = { required = true, default = "X-ChurnZero-Event", type = "string" },
-          event_name_quantity_delimiter = { required = true, default = ":", type = "string" },
+          authenticated_from = { required = true, default = "consumer", type = "string", enum = { "consumer", "credential" } },
+          unauthenticated_from = { required = true, default = "ip", type = "string", enum = { "ip", "const" } },
+          unauthenticated_const = { required = false, default = "anonymous", type = "string" },
+          prefix = { required = false, default = "contact-", type = "string" },
         }
       }
     },
-    -- TODO: implement debug setting and optimized debug function
-    -- debug = { required = true, default = true, type = "boolean" }
+    unauthenticated_enabled = { type = "boolean", required = true, default = true },
+    events_from_header_prefix = { type = "string", required = true, default = "X-ChurnZero-" },
+    timezone = { type = "string", required = true, default = "Z" },
+    debug = { required = true, default = false, type = "boolean" }
   },
   self_check = function(schema, plugin_t, dao, is_updating)
+    if plugin_t.account.unauthenticated_from == "const" and not plugin_t.account.unauthenticated_const then
+      return false, Errors.schema "you must set 'account.unauthenticated_const' if 'account.unauthenticated_from' is set to 'const'"
+    end
+
+    if plugin_t.contact.unauthenticated_from == "const" and not plugin_t.contact.unauthenticated_const then
+      return false, Errors.schema "you must set 'contact.unauthenticated_const' if 'contact.unauthenticated_from' is set to 'const'"
+    end
+
     return true
   end
-}   
+}
+
+return conf
