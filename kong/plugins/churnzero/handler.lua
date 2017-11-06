@@ -60,8 +60,8 @@ function ChurnZeroPlugin:header_filter( conf )
 
   -- catch events from headers
   local header_event_count, header_events = HeaderFilterContext 
-    :new(conf) 
-    :catch_churnzero_header_events(ngx_header)
+    :new( conf ) 
+    :catch_churnzero_header_events( ngx_header )
 
   -- save events (based on headers) to nginx context
   ngx_ctx.churnzero = { 

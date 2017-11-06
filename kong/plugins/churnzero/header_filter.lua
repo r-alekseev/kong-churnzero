@@ -8,6 +8,7 @@ local HeaderFilterContext     = (Object):extend()
 
 
 function HeaderFilterContext:new( conf )
+  
   self._conf = conf
 
   return self
@@ -71,7 +72,7 @@ local function iter_churnzero_headers_events_with_number_postfix( headers, heade
 
   local number = 0
   return function ()
-  
+
     number = number + 1
     return get_churnzero_headers_event( headers, headers_prefix, hide_churnzero_headers, number )
   end

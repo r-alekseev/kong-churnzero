@@ -80,7 +80,7 @@ end
 
 
 local function parse_url(host_url)
-	
+
   local parsed_url = socket_url.parse( host_url )
   if not parsed_url.port then
     if parsed_url.scheme == HTTP then
@@ -155,19 +155,15 @@ local function send( premature, ngx_socket, parsed_url, timeout, payload )
 end
 
 
-function LogFilterContext:produce_churnzero_events( short_events, short_event_count, produce_event, authenticated_consumer, authenticated_credential, remote_addr )
+function LogFilterContext:produce_churnzero_events( short_events, short_event_count, produce_event_f, authenticated_consumer, authenticated_credential, remote_addr )
 
   local conf = self._conf
 
   -- consumer unauthenticated and this is disabled
-  if not authenticated_consumer and not conf.unauthenticated_enabled then 
-    return self
-  end
+  if not authenticated_consumer and not conf.unauthenticated_enabled then return self end
 
   -- events collection is empty
-  if short_event_count < 1 or not short_events then 
-    return self
-  end
+  if short_event_count < 1 or not short_events then return self end
 
   local app_key = conf.app_key
   local event_date = os.date("!%Y-%m-%dT%H:%M:%SZ")
@@ -180,7 +176,7 @@ function LogFilterContext:produce_churnzero_events( short_events, short_event_co
 
   for _, short_event in ipairs( short_events ) do
     event_number = event_number + 1
-    events[event_number] = produce_event(
+    events[event_number] = produce_event_f(
       short_event.app_key or app_key,
       short_event.account_external_id or account_external_id,
       short_event.contact_external_id or contact_external_id,
@@ -202,9 +198,8 @@ function LogFilterContext:send_churnzero_request( ngx_socket, serialize_f )
 
   local events = self._events
   local event_number = self._event_number
-  if event_number == 0 or not events then
-  	return self
-  end
+  
+  if event_number == 0 or not events then return self end
 
   local body = serialize_f( events )
 
