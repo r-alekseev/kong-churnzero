@@ -30,7 +30,8 @@ local conf = {
     },
     unauthenticated_enabled = { type = "boolean", required = true, default = true },
     events_from_header_prefix = { type = "string", required = true, default = "X-ChurnZero-" },
-    timezone = { type = "string", required = true, default = "Z" }
+    timezone = { type = "string", required = true, default = "Z" },
+    hide_churnzero_headers = { type = "boolean", required = true, default = true },
   },
   self_check = function(schema, plugin_t, dao, is_updating)
     if plugin_t.account.unauthenticated_from == "const" and not plugin_t.account.unauthenticated_const then
