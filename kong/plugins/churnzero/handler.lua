@@ -96,6 +96,9 @@ function ChurnZeroPlugin:log( conf )
       :new( conf )
       :produce_churnzero_events( header_events, header_event_count, produce_event, authenticated_consumer, authenticated_credential, remote_addr )
       :send_churnzero_request( ngx_socket, cjson_encode )
+
+  -- cleanup nginx context
+  ngx_ctx.churnzero = nil
 end
 
 

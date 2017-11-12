@@ -50,7 +50,7 @@ local function get_external_id( conf, section, authenticated_consumer, authentic
     if conf[ section ].unauthenticated_from == "ip" then 
       identifier = remote_addr
     elseif conf[ section ].unauthenticated_from == "const" then 
-      identifier = conf[ section ].unauthenticated_const
+      identifier = conf[ section ].unauthenticated_from_const
     end
   end
 
@@ -166,7 +166,7 @@ function LogFilterContext:produce_churnzero_events( short_events, short_event_co
   if short_event_count < 1 or not short_events then return self end
 
   local app_key = conf.app_key
-  local event_date = os.date("!%Y-%m-%dT%H:%M:%SZ")
+  local event_date = os.date("!%Y-%m-%dT%H:%M:%S") .. conf.timezone
 
   local account_external_id = get_external_id( conf, "account", authenticated_consumer, authenticated_credential, remote_addr )
   local contact_external_id = get_external_id( conf, "contact", authenticated_consumer, authenticated_credential, remote_addr )

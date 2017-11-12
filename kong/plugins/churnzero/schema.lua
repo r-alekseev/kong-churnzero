@@ -12,7 +12,7 @@ local conf = {
         fields = {
           authenticated_from = { required = true, default = "consumer", type = "string", enum = { "consumer", "credential" } },
           unauthenticated_from = { required = true, default = "ip", type = "string", enum = { "ip", "const" } },
-          unauthenticated_const = { required = false, default = "anonymous", type = "string" },
+          unauthenticated_from_const = { required = false, default = "anonymous", type = "string" },
           prefix = { required = false, default = "", type = "string" },
         }
       }
@@ -23,13 +23,14 @@ local conf = {
         fields = {
           authenticated_from = { required = true, default = "consumer", type = "string", enum = { "consumer", "credential" } },
           unauthenticated_from = { required = true, default = "ip", type = "string", enum = { "ip", "const" } },
-          unauthenticated_const = { required = false, default = "anonymous", type = "string" },
+          unauthenticated_from_const = { required = false, default = "anonymous", type = "string" },
           prefix = { required = false, default = "contact-", type = "string" },
         }
       }
     },
     unauthenticated_enabled = { type = "boolean", required = true, default = true },
     events_from_header_prefix = { type = "string", required = true, default = "X-ChurnZero-" },
+    events_from_route_patterns = { type = "string", required = false },
     timezone = { type = "string", required = true, default = "Z" },
     hide_churnzero_headers = { type = "boolean", required = true, default = true },
   },
