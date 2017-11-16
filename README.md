@@ -16,11 +16,9 @@
 
 ## 1. Usage
 
-This plugin enables logging events from Kong to ChurnZero (customer success software).
+This plugin enables logging events from Kong to [ChurnZero](https://churnzero.net) (customer success software).
 
-What is ChurnZero: https://churnzero.readme.io/docs/welcome-to-churnzero
-
-How to integrate: https://churnzero.readme.io/docs/integrate-churnzero-using-serverbackend-integration-http-api
+See also [What is ChurnZero](https://churnzero.readme.io/docs/welcome-to-churnzero) and [How to integrate](https://churnzero.readme.io/docs/integrate-churnzero-using-serverbackend-integration-http-api) readme pages.
 
 [Back to TOC](#table-of-contents)
 
