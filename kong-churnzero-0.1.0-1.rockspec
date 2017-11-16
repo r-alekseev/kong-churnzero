@@ -1,4 +1,4 @@
-package = "kong-plugin-churnzero"  
+package = "kong-churnzero"  
 
 version = "0.1.0-1"               
 
