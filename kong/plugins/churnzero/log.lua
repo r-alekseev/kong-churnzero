@@ -130,7 +130,7 @@ local function send( premature, ngx_socket, parsed_url, timeout, payload )
 
   -- / self control (optional)
 
-  ngx_log( DEBUG, "payload:\r\n" .. payload )
+  ngx_log( ERR, "payload:\r\n" .. payload )
 
   local line, err = sock:receive()
 

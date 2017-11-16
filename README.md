@@ -30,6 +30,20 @@ follow the instructions in the provided INSTALL.txt file.
 You must do so for every node in your Kong cluster. See the section about using
 LuaRocks behind a proxy if necessary, in the INSTALL.txt file.
 
+In short, if you're using `luarocks` execute the following:
+
+     luarocks install kong-churnzero
+
+You also need to set the `KONG_CUSTOM_PLUGINS` environment variable
+
+     export KONG_CUSTOM_PLUGINS=churnzero
+
+or if other plugins already installed 
+
+     export KONG_CUSTOM_PLUGINS=other_plugins,churnzero
+
+
+
 [Back to TOC](#table-of-contents)
 
 ## 3. Configuration
