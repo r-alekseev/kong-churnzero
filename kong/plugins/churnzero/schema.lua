@@ -31,7 +31,6 @@ local conf = {
     unauthenticated_enabled = { type = "boolean", required = true, default = true },
     events_from_header_prefix = { type = "string", required = true, default = "X-ChurnZero-" },
     events_from_route_patterns = { type = "string", required = false },
-    timezone = { type = "string", required = true, default = "Z" },
     hide_churnzero_headers = { type = "boolean", required = true, default = true },
   },
   self_check = function(schema, plugin_t, dao, is_updating)

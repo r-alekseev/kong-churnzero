@@ -86,7 +86,6 @@ Attribute                                      | Default value  | Description
 `config.events_from_route_patterns`            |                | (NOT IMPLEMENTED) Kong will send to ChurnZero events based on what pattern is matched with route string. Whitespace separates pattern from event name. F.e. if route string is `/myentity/123` this property value is `[ "/myentity/%d+ GetEntity" ]`, Kong will send `GetEntity` event to ChurnZero.
 `config.events_from_header_prefix`             | `X-ChurnZero-` | Kong will send to ChurnZero events based on headers starting with this prefix. F.e. if the header `X-ChurnZero-EventName:SomeMethodCalled` occured in the upstream response, Kong will send `SomeMethodCalled` event to ChurnZero.
 `config.hide_churnzero_headers`                | `true`         | `true` means the headers used to produce events will not be sent to a downstream.
-`config.timezone`                              | `Z`            | Timezone using to autogenerate `eventDate` attribute in case of this value unspecified.
 
 
 **Account settings**
