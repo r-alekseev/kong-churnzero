@@ -83,7 +83,7 @@ Attribute                                      | Default value  | Description
 **(required)** `config.app_key`                |                | Application key in the ChurnZero system. Ask the ChurnZero team.
 `config.timeout`                               | `10000`        | The time for waiting the response of the http-request.
 `config.unauthenticated_enabled`               | `true`         | `false` means events from unauthenticated consumers will not be sent to ChurnZero.
-`config.events_from_route_patterns`            |                | (NOT IMPLEMENTED) Kong will send to ChurnZero events based on what pattern is matched with route string. Whitespace separates pattern from event name. F.e. if route string is `/myentity/123` this property value is `[ "/myentity/%d+ GetEntity" ]`, Kong will send `GetEntity` event to ChurnZero.
+`config.events_from_route_patterns`            |                | Kong will send to ChurnZero events based on what pattern is matched with route string. Whitespace separates pattern from event name. F.e. if route string is `/myentity/123` and this property value array is `[ "/myentity/%d+ GetEntity", "/anotherentity/%d+ GetAnotherEntity" ]`, Kong will send `GetEntity` event to ChurnZero because `/myentity/%d+` matched to `/myentity/123`.
 `config.events_from_header_prefix`             | `X-ChurnZero-` | Kong will send to ChurnZero events based on headers starting with this prefix. F.e. if the header `X-ChurnZero-EventName:SomeMethodCalled` occured in the upstream response, Kong will send `SomeMethodCalled` event to ChurnZero.
 `config.hide_churnzero_headers`                | `true`         | `true` means the headers used to produce events will not be sent to a downstream.
 

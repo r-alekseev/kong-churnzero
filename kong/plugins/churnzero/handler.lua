@@ -1,5 +1,10 @@
+local table_new             = require "table.new"
 local cjson                 = require "cjson"
 
+local ngx_header            = ngx.header
+local ngx_resp              = ngx.resp
+
+local AccessContext         = require "kong.plugins.churnzero.access"
 local HeaderFilterContext   = require "kong.plugins.churnzero.header_filter"
 local LogContext            = require "kong.plugins.churnzero.log"
 
@@ -50,24 +55,44 @@ function ChurnZeroPlugin:new( name )
 end
 
 
+-- Executed for every request from a client and before it is being proxied to the upstream service.
+-- @param[type=table] `conf` Plugin configuration.
+function ChurnZeroPlugin:access( conf )
+  ChurnZeroPlugin.super.access( self )
+
+  local ngx_ctx       = ngx.ctx
+  local uri           = ngx.var.uri
+
+  -- catch events from route string
+  local route_event_count, route_events = AccessContext 
+    :new( conf ) 
+    :catch_churnzero_route_events( uri )
+
+  -- save events (based on route) to nginx context
+  if not ngx_ctx.churnzero then ngx_ctx.churnzero = table_new( 0, 4 ) end
+  ngx_ctx.churnzero.route_event_count = route_event_count
+  ngx_ctx.churnzero.route_events = route_events 
+end
+
+
 -- Executed when all response headers bytes have been received from the upstream service.
 -- @param[type=table] `conf` Plugin configuration.
 function ChurnZeroPlugin:header_filter( conf )
   ChurnZeroPlugin.super.header_filter( self )
 
-  local ngx_ctx     = ngx.ctx
-  local ngx_header  = ngx.header
+  local ngx_ctx           = ngx.ctx
+  local consumer_headers  = ngx_header
+  local upstream_headers  = ngx_resp.get_headers()
 
   -- catch events from headers
   local header_event_count, header_events = HeaderFilterContext 
     :new( conf ) 
-    :catch_churnzero_header_events( ngx_header )
+    :catch_churnzero_header_events( consumer_headers, upstream_headers )
 
   -- save events (based on headers) to nginx context
-  ngx_ctx.churnzero = { 
-    header_event_count = header_event_count, 
-    header_events = header_events 
-  }
+  if not ngx_ctx.churnzero then ngx_ctx.churnzero = table_new( 0, 4 ) end
+  ngx_ctx.churnzero.header_event_count = header_event_count
+  ngx_ctx.churnzero.header_events = header_events 
 end
 
 
@@ -80,7 +105,8 @@ function ChurnZeroPlugin:log( conf )
   local ngx_var     = ngx.var
   local ngx_socket  = ngx.socket
 
-  if not ngx_ctx.churnzero then return end
+  local ctx_churnzero = ngx_ctx.churnzero
+  if not ctx_churnzero then return end
 
   -- load consumer info
   local authenticated_consumer = ngx_ctx.authenticated_consumer
@@ -88,13 +114,18 @@ function ChurnZeroPlugin:log( conf )
   local remote_addr = ngx_var.remote_addr
 
   -- load events (based on headers) from nginx context
-  local header_events = ngx_ctx.churnzero.header_events
-  local header_event_count = ngx_ctx.churnzero.header_event_count
+  local header_events = ctx_churnzero.header_events
+  local header_event_count = ctx_churnzero.header_event_count
+
+  -- load events (based on headers) from nginx context
+  local route_events = ctx_churnzero.route_events
+  local route_event_count = ctx_churnzero.route_event_count
 
   -- send http request to churnzero based on events from headers
   LogContext 
       :new( conf )
       :produce_churnzero_events( header_events, header_event_count, produce_event, authenticated_consumer, authenticated_credential, remote_addr )
+      :produce_churnzero_events( route_events, route_event_count, produce_event, authenticated_consumer, authenticated_credential, remote_addr )
       :send_churnzero_request( ngx_socket, cjson_encode )
 
   -- cleanup nginx context
