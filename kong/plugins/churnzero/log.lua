@@ -130,7 +130,7 @@ local function send( premature, ngx_socket, parsed_url, timeout, payload )
 
   -- / self control (optional)
 
-  ngx_log( ERR, "payload:\r\n" .. payload )
+  ngx_log( DEBUG, "payload:\r\n" .. payload )
 
   local line, err = sock:receive()
 
@@ -163,7 +163,7 @@ function LogFilterContext:produce_churnzero_events( short_events, short_event_co
   if not authenticated_consumer and not conf.unauthenticated_enabled then return self end
 
   -- events collection is empty
-  if short_event_count < 1 or not short_events then return self end
+  if not short_event_count or short_event_count < 1 or not short_events then return self end
 
   local app_key = conf.app_key
   local event_date = os.date("!%Y-%m-%dT%H:%M:%SZ")
