@@ -292,7 +292,7 @@ ChurnZero log http request body:
     {
       "appKey": "A-aa1bb2cc3dd4_eF-jklmnOpq2Rst234-U0v879Wxuz", 
       "accountExternalId": "pineapple",
-      "contactExternalId": "m.kong@pineapple.com",
+      "contactExternalId": "contact-pineapple",
       "action": "trackEvent",
       "eventDate": "2017-11-14T02:11:58Z",
       "eventName": "GetEntity",
