@@ -234,11 +234,13 @@ Confguration settings:
 
   ```
   config.app_key = "A-aa1bb2cc3dd4_eF-jklmnOpq2Rst234-U0v879Wxuz"
-  config.account.authenticated_from = "consumer"  (by default) (f.e. consumer is "pineapple")
-  config.account.prefix = ""                      (by default)
-  config.contact.authenticated_from = "consumer"  (by default) (f.e. consumer is "pineapple")
-  config.contact.prefix = "contact-"              (by default)
+  config.account.authenticated_from = "consumer"    (by default) (f.e. consumer is "pineapple")
+  config.account.prefix = ""                        (by default)
+  config.contact.authenticated_from = "consumer"    (by default) (f.e. consumer is "pineapple")
+  config.contact.prefix = "contact-"                (by default)
+  config.events_from_header_prefix = "X-ChurnZero-" (by default)
   ```
+
 ChurnZero log http request body:
 
   ```
@@ -260,6 +262,41 @@ ChurnZero log http request body:
       "eventDate": "2017-11-14T01:07:35Z",      (kong server date)
       "eventName": "GetSpecialProductList",     (from header)
       "quantity": 2                             (from header)
+    }
+  ]
+  ```
+
+**Example 3: Event name from route string, the rest from settings:**
+
+Route string:
+
+  ```
+  /myentity/123
+  ```
+
+Confguration settings:
+
+  ```
+  config.app_key = "A-aa1bb2cc3dd4_eF-jklmnOpq2Rst234-U0v879Wxuz"
+  config.account.authenticated_from = "consumer"  (by default) (f.e. consumer is "pineapple")
+  config.account.prefix = ""                      (by default)
+  config.contact.authenticated_from = "consumer"  (by default) (f.e. consumer is "pineapple")
+  config.contact.prefix = "contact-"              (by default)
+  config.events_from_route_patterns[1] = "/myentity/%d+ GetEntity"
+  ```
+
+ChurnZero log http request body:
+
+  ```
+  [
+    {
+      "appKey": "A-aa1bb2cc3dd4_eF-jklmnOpq2Rst234-U0v879Wxuz", 
+      "accountExternalId": "pineapple",
+      "contactExternalId": "m.kong@pineapple.com",
+      "action": "trackEvent",
+      "eventDate": "2017-11-14T02:11:58Z",
+      "eventName": "GetEntity",
+      "quantity": 1
     }
   ]
   ```
