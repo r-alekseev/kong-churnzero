@@ -126,7 +126,7 @@ Vagrant machine on a MacOS.
 
     ```
 
-2. Apply the `openwhisk` plugin to the API on Kong
+2. Apply the `churnzero` plugin to the API on Kong
 
     ```bash
     $ curl -i -X POST http://localhost:8001/apis/test-api/plugins \
@@ -168,7 +168,7 @@ Vagrant machine on a MacOS.
    
 ### Headers matching
 
-By default, the `config.events_from_header_prefix` property value is `X-ChurnZero-`. This meant that the `churnzero` plugin will catch the following headers in each response from the upstream:<br>
+By default, the `config.events_from_header_prefix` property value is `X-ChurnZero-`. This means that the `churnzero` plugin will catch the following headers in each response from the upstream:<br>
 
 `X-ChurnZero-EventName`<br>
 `X-ChurnZero-Quantity`<br>
@@ -265,13 +265,25 @@ ChurnZero log http request body:
     }
   ]
   ```
+  
+### Route string patterns matching
+
+By default, the `config.events_from_route_patterns` property value is empty. This means route string pattern matching is disabled.
+
+To enable route string pattern matching need to add a pattern <br>
+`config.events_from_route_patterns[1]=/entity/%d+ GetEntity` (the space separates a pattern part from an event-name part).
+This means that the `churnzero` plugin will send an event with EventName = `GetEntity` to ChurnZero on each request from any consumer in case of `/entity/%d+` matched to the route string.
+
+It is possible to add several patterns: <br>
+`config.events_from_route_patterns[2]=/file/%d+ GetFile`
+
 
 **Example 3: Event name from route string, the rest from settings:**
 
 Route string:
 
   ```
-  /myentity/123
+  /entity/123
   ```
 
 Confguration settings:
@@ -282,7 +294,7 @@ Confguration settings:
   config.account.prefix = ""                      (by default)
   config.contact.authenticated_from = "consumer"  (by default) (f.e. consumer is "pineapple")
   config.contact.prefix = "contact-"              (by default)
-  config.events_from_route_patterns[1] = "/myentity/%d+ GetEntity"
+  config.events_from_route_patterns[1] = "/entity/%d+ GetEntity"
   ```
 
 ChurnZero log http request body:
