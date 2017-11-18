@@ -76,36 +76,36 @@ for more information.
 
 **Common settings**
 
-Attribute                                      | Default value  | Description
-----------------------------------------------:|---------------:|-------------------------------------------------------
-`name`                                         |                | The name of the plugin to use, in this case: `churnzero`
-**(required)** `config.endpoint_url`           |                | Endpoint (host) of the ChurnZero server.
-**(required)** `config.app_key`                |                | Application key in the ChurnZero system. Ask the ChurnZero team.
-`config.timeout`                               | `10000`        | The time for waiting the response of the http-request.
-`config.unauthenticated_enabled`               | `true`         | `false` means events from unauthenticated consumers will not be sent to ChurnZero.
-`config.events_from_route_patterns`            |                | Kong will send to ChurnZero events based on what pattern is matched with route string. Whitespace separates pattern from event name. F.e. if route string is `/myentity/123` and this property value array is `[ "/myentity/%d+ GetEntity", "/anotherentity/%d+ GetAnotherEntity" ]`, Kong will send `GetEntity` event to ChurnZero because `/myentity/%d+` matched to `/myentity/123`. (see [Lua Patterns](https://www.lua.org/pil/20.2.html))
-`config.events_from_header_prefix`             | `X-ChurnZero-` | Kong will send to ChurnZero events based on headers starting with this prefix. F.e. if the header `X-ChurnZero-EventName:SomeMethodCalled` occured in the upstream response, Kong will send `SomeMethodCalled` event to ChurnZero.
-`config.hide_churnzero_headers`                | `true`         | `true` means the headers used to produce events will not be sent to a downstream.
+Attribute                                                       | Default value  | Description
+---------------------------------------------------------------:|---------------:|-------------------------------------------------------
+`name`                                                          |                | The name of the plugin to use, in this case: `churnzero`
+`config.endpoint_url`<br>**required**                           |                | Endpoint (host) of the ChurnZero server.
+`config.app_key`<br>**required**                                |                | Application key in the ChurnZero system. Ask the ChurnZero team.
+`config.timeout`<br>*optional*                                  | `10000`        | The time for waiting the response of the http-request.
+`config.unauthenticated_enabled`<br>*optional*                  | `true`         | `false` means events from unauthenticated consumers will not be sent to ChurnZero.
+`config.events_from_route_patterns`<br>*optional*               |                | Kong will send to ChurnZero events based on what pattern is matched with route string. Whitespace separates pattern from event name. F.e. if route string is `/myentity/123` and this property value array is `[ "/myentity/%d+ GetEntity", "/anotherentity/%d+ GetAnotherEntity" ]`, Kong will send `GetEntity` event to ChurnZero because `/myentity/%d+` matched to `/myentity/123`. (see [Lua Patterns](https://www.lua.org/pil/20.2.html))
+`config.events_from_header_prefix`<br>*optional*                | `X-ChurnZero-` | Kong will send to ChurnZero events based on headers starting with this prefix. F.e. if the header `X-ChurnZero-EventName:SomeMethodCalled` occured in the upstream response, Kong will send `SomeMethodCalled` event to ChurnZero.
+`config.hide_churnzero_headers`<br>*optional*                   | `true`         | `true` means the headers used to produce events will not be sent to a downstream.
 
 
 **Account settings**
 
-Attribute                                      | Default value  | Description
-----------------------------------------------:|---------------:|-------------------------------------------------------
-`config.account.authenticated_from`            | `consumer`     | When consumer authenticated, this property value will be used to fill `accountExternalId` event attribute in case of this attribute unspecified. Possible values: `consumer`, `credential`. `consumer` means use consumer `name`, `custom_id` or `id`. `credential` means use credential `key`.
-`config.account.unauthenticated_from`          | `ip`           | When consumer unauthenticated, this property value will be used to fill `accountExternalId` event attribute in case of this attribute unspecified. Possible values: `ip`, `constant`. `ip` means use consumer ip address. `constant` means use `config.account.unauthenticated_from_const` property value
-`config.account.unauthenticated_from_const`    | `anonymous`    | When consumer unauthenticated and `config.account.unauthenticated_from` property value is `constant`, this property value will be used to fill `accountExternalId` event attribute.
-`config.account.prefix`                        |                | The value of this property will be prepend to autogenerated `accountExternalId` event attribute in case of this attribute unspecified.
+Attribute                                                       | Default value  | Description
+---------------------------------------------------------------:|---------------:|-------------------------------------------------------
+`config.account.authenticated_from`<br>*optional*               | `consumer`     | When consumer authenticated, this property value will be used to fill `accountExternalId` event attribute in case of this attribute unspecified. Possible values: `consumer`, `credential`. `consumer` means use consumer `name`, `custom_id` or `id`. `credential` means use credential `key`.
+`config.account.unauthenticated_from`<br>*optional*             | `ip`           | When consumer unauthenticated, this property value will be used to fill `accountExternalId` event attribute in case of this attribute unspecified. Possible values: `ip`, `constant`. `ip` means use consumer ip address. `constant` means use `config.account.unauthenticated_from_const` property value
+`config.account.unauthenticated_from_const`<br>*optional*       | `anonymous`    | When consumer unauthenticated and `config.account.unauthenticated_from` property value is `constant`, this property value will be used to fill `accountExternalId` event attribute.
+`config.account.prefix`<br>*optional*                           |                | The value of this property will be prepend to autogenerated `accountExternalId` event attribute in case of this attribute unspecified.
 
 
 **Contact sttings**
 
-Attribute                                      | Default value  | Description
-----------------------------------------------:|---------------:|-------------------------------------------------------
-`config.contact.authenticated_from`            | `consumer`     | When consumer authenticated, this property value will be used to fill `contactExternalId` event attribute in case of this attribute unspecified. Possible values: `consumer`, `credential`. `consumer` means use consumer `name`, `custom_id` or `id`. `credential` means use credential `key`.
-`config.contact.unauthenticated_from`          | `ip`           | When consumer unauthenticated, this property value will be used to fill `contactExternalId` event attribute in case of this attribute unspecified. Possible values: `ip`, `constant`. `ip` means use consumer ip address. `constant` means use `config.contact.unauthenticated_from_const` property value
-`config.contact.unauthenticated_from_const`    | `anonymous`    | When consumer unauthenticated and `config.contact.unauthenticated_from` property value is `constant`, this property value will be used to fill `contactExternalId` event attribute.
-`config.contact.prefix`                        | `contact-`     | The value of this property will be prepend to autogenerated `contactExternalId` event attribute in case of this attribute unspecified.
+Attribute                                                       | Default value  | Description
+---------------------------------------------------------------:|---------------:|-------------------------------------------------------
+`config.contact.authenticated_from`<br>*optional*               | `consumer`     | When consumer authenticated, this property value will be used to fill `contactExternalId` event attribute in case of this attribute unspecified. Possible values: `consumer`, `credential`. `consumer` means use consumer `name`, `custom_id` or `id`. `credential` means use credential `key`.
+`config.contact.unauthenticated_from`<br>*optional*             | `ip`           | When consumer unauthenticated, this property value will be used to fill `contactExternalId` event attribute in case of this attribute unspecified. Possible values: `ip`, `constant`. `ip` means use consumer ip address. `constant` means use `config.contact.unauthenticated_from_const` property value
+`config.contact.unauthenticated_from_const`<br>*optional*       | `anonymous`    | When consumer unauthenticated and `config.contact.unauthenticated_from` property value is `constant`, this property value will be used to fill `contactExternalId` event attribute.
+`config.contact.prefix`<br>*optional*                           | `contact-`     | The value of this property will be prepend to autogenerated `contactExternalId` event attribute in case of this attribute unspecified.
 
 [Back to TOC](#table-of-contents)
 
