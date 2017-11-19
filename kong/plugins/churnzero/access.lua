@@ -36,7 +36,7 @@ function AccessContext:catch_churnzero_route_events( uri )
   local conf = self._conf
 
   local route_event_number     = 0
-  local route_events           = table_new( 0, 4 )
+  local route_events           = table_new( 2, 0 )
 
   local events_from_route_patterns = conf.events_from_route_patterns
 

@@ -1,9 +1,6 @@
 local table_new             = require "table.new"
 local cjson                 = require "cjson"
 
-local ngx_header            = ngx.header
-local ngx_resp              = ngx.resp
-
 local AccessContext         = require "kong.plugins.churnzero.access"
 local HeaderFilterContext   = require "kong.plugins.churnzero.header_filter"
 local LogContext            = require "kong.plugins.churnzero.log"
@@ -61,7 +58,9 @@ function ChurnZeroPlugin:access( conf )
   ChurnZeroPlugin.super.access( self )
 
   local ngx_ctx       = ngx.ctx
-  local uri           = ngx.var.uri
+  local ngx_var       = ngx.var
+
+  local uri           = ngx_var.uri
 
   -- catch events from route string
   local route_event_count, route_events = AccessContext 
@@ -81,6 +80,9 @@ function ChurnZeroPlugin:header_filter( conf )
   ChurnZeroPlugin.super.header_filter( self )
 
   local ngx_ctx           = ngx.ctx
+  local ngx_resp          = ngx.resp
+  local ngx_header        = ngx.header
+
   local consumer_headers  = ngx_header
   local upstream_headers  = ngx_resp.get_headers()
 

@@ -81,7 +81,7 @@ function HeaderFilterContext:catch_churnzero_header_events( consumer_headers, up
   local conf = self._conf
 
   local header_event_number     = 0
-  local header_events           = table_new( 0, 4 )
+  local header_events           = table_new( 2, 0 )
 
   local headers_prefix          = conf.events_from_header_prefix
   local hide_churnzero_headers  = conf.hide_churnzero_headers
