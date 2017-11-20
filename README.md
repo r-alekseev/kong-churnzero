@@ -186,7 +186,7 @@ By default, the `config.events_from_header_prefix` property value is `X-ChurnZer
 
 **Example 1: Full event from headers:**
 
-Confguration settings:
+Configuration settings:
 
   ```
   config.events_from_header_prefix = "X-ChurnZero-" (by default)
@@ -271,7 +271,7 @@ ChurnZero log http request body:
 By default, the `config.events_from_route_patterns` property value is empty. This means route string pattern matching is disabled.
 
 To enable route string pattern matching need to add a pattern <br>
-`config.events_from_route_patterns[1]=/entity/%d+ GetEntity` (the space separates a pattern part from an event-name part).
+`config.events_from_route_patterns[1]=/entity/%d+ GetEntity` (the space separates a matching part from an event-name part).
 This means that the `churnzero` plugin will send an event with EventName = `GetEntity` to ChurnZero on each request from any consumer in case of `/entity/%d+` matched to the route string.
 
 It is possible to add several patterns: <br>
