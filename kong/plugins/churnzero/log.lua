@@ -9,11 +9,6 @@ local string_format         = string.format
 local Object                = require "kong.vendor.classic"
 local LogFilterContext      = (Object):extend()
 
-local ngx_log               = ngx.log
-
-local ERR                   = ngx.ERR
-local DEBUG                 = ngx.DEBUG
-
 local HTTP = "http"
 local HTTPS = "https"
 
@@ -97,64 +92,6 @@ local function parse_url(host_url)
 end
 
 
-local function send( premature, ngx_socket, parsed_url, timeout, payload )
-
-  if premature then return end
-
-  local ok, err
-
-  local host = parsed_url.host
-  local port = tonumber( parsed_url.port )
-
-  local sock = ngx_socket.tcp()
-  sock:settimeout( timeout )
-
-  ok, err = sock:connect( host, port )
-  if not ok then
-    ngx_log( ERR, "failed to connect to " .. host .. ":" .. tostring( port ) .. ": ", err ) 
-    return
-  end
-
-  if parsed_url.scheme == HTTPS then
-    local _, err = sock:sslhandshake( true, host, false )
-    if err then
-      ngx_log( ERR, "failed to do SSL handshake with " .. host .. ":" .. tostring( port ) .. ": ", err )
-    end
-  end
-
-  ok, err = sock:send( payload )
-  if not ok then
-    ngx_log( ERR, "failed to send data to " .. host .. ":" .. tostring( port ) .. ": ", err )
-    return
-  end
-
-  -- / self control (optional)
-
-  ngx_log( DEBUG, "payload:\r\n" .. payload )
-
-  local line, err = sock:receive()
-
-  if not line then
-  	ngx_log( ERR, "failed to receive status from " .. host .. ":" .. tostring( port ) .. ": ", err )
-    return
-  end
-
-  if line ~= "HTTP/1.1 200 OK" then
-
-    local chunk, err, partial = sock:receive( "*a" )
-
-    if not chunk then
-      ngx_log( ERR, "failed to receive body from " .. host .. ":" .. tostring( port ) .. ": ", err )
-      return
-    end
-
-    ngx_log( ERR, "received " .. line .. "\r\n" .. chunk .. "\r\n" .. partial )
-  end
-
-  -- \ self control (optional)
-end
-
-
 function LogFilterContext:produce_churnzero_events( short_events, short_event_count, produce_event_f, authenticated_consumer, authenticated_credential, remote_addr )
 
   local conf = self._conf
@@ -192,7 +129,7 @@ function LogFilterContext:produce_churnzero_events( short_events, short_event_co
 end
 
 
-function LogFilterContext:send_churnzero_request( ngx_socket, serialize_f )
+function LogFilterContext:send_churnzero_request( send_f, serialize_f )
 
   local conf = self._conf
 
@@ -209,10 +146,7 @@ function LogFilterContext:send_churnzero_request( ngx_socket, serialize_f )
   local parsed_url = parse_url( endpoint_url )
   local payload = generate_churnzero_payload( parsed_url, body )
 
-  local ok, err = ngx.timer.at( 0, send, ngx_socket, parsed_url, timeout, payload )
-  if not ok then
-  	ngx_log( ERR, "failed to create timer ", err )
-  end
+  send_f( parsed_url, timeout, payload )
 
   return self
 end

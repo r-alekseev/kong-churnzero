@@ -5,6 +5,8 @@ local AccessContext         = require "kong.plugins.churnzero.access"
 local HeaderFilterContext   = require "kong.plugins.churnzero.header_filter"
 local LogContext            = require "kong.plugins.churnzero.log"
 
+local send_f                = require("kong.plugins.churnzero.request").send
+
 local cjson_encode          = cjson.encode
 
 local BasePlugin            = require("kong.plugins.base_plugin") 
@@ -105,7 +107,7 @@ function ChurnZeroPlugin:log( conf )
 
   local ngx_ctx     = ngx.ctx
   local ngx_var     = ngx.var
-  local ngx_socket  = ngx.socket
+  
 
   local ctx_churnzero = ngx_ctx.churnzero
   if not ctx_churnzero then return end
@@ -128,7 +130,7 @@ function ChurnZeroPlugin:log( conf )
       :new( conf )
       :produce_churnzero_events( header_events, header_event_count, produce_event, authenticated_consumer, authenticated_credential, remote_addr )
       :produce_churnzero_events( route_events, route_event_count, produce_event, authenticated_consumer, authenticated_credential, remote_addr )
-      :send_churnzero_request( ngx_socket, cjson_encode )
+      :send_churnzero_request( send_f, cjson_encode )
 
   -- cleanup nginx context
   ngx_ctx.churnzero = nil

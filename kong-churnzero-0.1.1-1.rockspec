@@ -26,5 +26,6 @@ build = {
     ["kong.plugins."..pluginName..".header_filter"] = "kong/plugins/"..pluginName.."/header_filter.lua",
     ["kong.plugins."..pluginName..".log"] = "kong/plugins/"..pluginName.."/log.lua",
     ["kong.plugins."..pluginName..".schema"] = "kong/plugins/"..pluginName.."/schema.lua",
+    ["kong.plugins."..pluginName..".request"] = "kong/plugins/"..pluginName.."/request.lua",
   }
 }
